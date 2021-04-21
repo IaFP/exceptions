@@ -35,3 +35,4 @@ cabal.project.local~
 dist-install
 GNUmakefile
 ghc.mk
+*.hs.bak

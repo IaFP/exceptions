@@ -6,6 +6,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
@@ -116,6 +119,10 @@ import Data.Monoid
 
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
+#endif
+
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
 #endif
 
 ------------------------------------------------------------------------------
@@ -374,11 +381,23 @@ instance e ~ SomeException => MonadMask (Either e) where
             c <- release resource (ExitCaseSuccess b)
             return (b, c)
 
-instance MonadThrow m => MonadThrow (IdentityT m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (IdentityT m) where
   throwM e = lift $ throwM e
-instance MonadCatch m => MonadCatch (IdentityT m) where
+instance (MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (IdentityT m) where
   catch (IdentityT m) f = IdentityT (catch m (runIdentityT . f))
-instance MonadMask m => MonadMask (IdentityT m) where
+instance (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (IdentityT m) where
   mask a = IdentityT $ mask $ \u -> runIdentityT (a $ q u)
     where q :: (m a -> m a) -> IdentityT m a -> IdentityT m a
           q u = IdentityT . u . runIdentityT
@@ -393,11 +412,23 @@ instance MonadMask m => MonadMask (IdentityT m) where
       (\resource exitCase -> runIdentityT (release resource exitCase))
       (\resource -> runIdentityT (use resource))
 
-instance MonadThrow m => MonadThrow (LazyS.StateT s m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (LazyS.StateT s m) where
   throwM e = lift $ throwM e
-instance MonadCatch m => MonadCatch (LazyS.StateT s m) where
+instance (MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (LazyS.StateT s m) where
   catch = LazyS.liftCatch catch
-instance MonadMask m => MonadMask (LazyS.StateT s m) where
+instance (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (LazyS.StateT s m) where
   mask a = LazyS.StateT $ \s -> mask $ \u -> LazyS.runStateT (a $ q u) s
     where q :: (m (a, s) -> m (a, s)) -> LazyS.StateT s m a -> LazyS.StateT s m a
           q u (LazyS.StateT b) = LazyS.StateT (u . b)
@@ -421,11 +452,23 @@ instance MonadMask m => MonadMask (LazyS.StateT s m) where
       (\(resource, s1) -> LazyS.runStateT (use resource) s1)
     return ((b, c), s3)
 
-instance MonadThrow m => MonadThrow (StrictS.StateT s m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (StrictS.StateT s m) where
   throwM e = lift $ throwM e
-instance MonadCatch m => MonadCatch (StrictS.StateT s m) where
+instance (MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (StrictS.StateT s m) where
   catch = StrictS.liftCatch catch
-instance MonadMask m => MonadMask (StrictS.StateT s m) where
+instance (MonadMask m 
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (StrictS.StateT s m) where
   mask a = StrictS.StateT $ \s -> mask $ \u -> StrictS.runStateT (a $ q u) s
     where q :: (m (a, s) -> m (a, s)) -> StrictS.StateT s m a -> StrictS.StateT s m a
           q u (StrictS.StateT b) = StrictS.StateT (u . b)
@@ -450,7 +493,11 @@ instance MonadThrow m => MonadThrow (ReaderT r m) where
   throwM e = lift $ throwM e
 instance MonadCatch m => MonadCatch (ReaderT r m) where
   catch (ReaderT m) c = ReaderT $ \r -> m r `catch` \e -> runReaderT (c e) r
-instance MonadMask m => MonadMask (ReaderT r m) where
+instance (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (ReaderT r m) where
   mask a = ReaderT $ \e -> mask $ \u -> runReaderT (a $ q u) e
     where q :: (m a -> m a) -> ReaderT e m a -> ReaderT e m a
           q u (ReaderT b) = ReaderT (u . b)
@@ -465,11 +512,23 @@ instance MonadMask m => MonadMask (ReaderT r m) where
       (\resource exitCase -> runReaderT (release resource exitCase) r)
       (\resource -> runReaderT (use resource) r)
 
-instance (MonadThrow m, Monoid w) => MonadThrow (StrictW.WriterT w m) where
+instance (MonadThrow m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (StrictW.WriterT w m) where
   throwM e = lift $ throwM e
-instance (MonadCatch m, Monoid w) => MonadCatch (StrictW.WriterT w m) where
+instance (MonadCatch m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (StrictW.WriterT w m) where
   catch (StrictW.WriterT m) h = StrictW.WriterT $ m `catch ` \e -> StrictW.runWriterT (h e)
-instance (MonadMask m, Monoid w) => MonadMask (StrictW.WriterT w m) where
+instance (MonadMask m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (StrictW.WriterT w m) where
   mask a = StrictW.WriterT $ mask $ \u -> StrictW.runWriterT (a $ q u)
     where q :: (m (a, w) -> m (a, w)) -> StrictW.WriterT w m a -> StrictW.WriterT w m a
           q u b = StrictW.WriterT $ u (StrictW.runWriterT b)
@@ -498,11 +557,23 @@ instance (MonadMask m, Monoid w) => MonadMask (StrictW.WriterT w m) where
         return (a, mappend w1 w2))
     return ((b, c), w123)
 
-instance (MonadThrow m, Monoid w) => MonadThrow (LazyW.WriterT w m) where
+instance (MonadThrow m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (LazyW.WriterT w m) where
   throwM e = lift $ throwM e
-instance (MonadCatch m, Monoid w) => MonadCatch (LazyW.WriterT w m) where
+instance (MonadCatch m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (LazyW.WriterT w m) where
   catch (LazyW.WriterT m) h = LazyW.WriterT $ m `catch ` \e -> LazyW.runWriterT (h e)
-instance (MonadMask m, Monoid w) => MonadMask (LazyW.WriterT w m) where
+instance (MonadMask m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (LazyW.WriterT w m) where
   mask a = LazyW.WriterT $ mask $ \u -> LazyW.runWriterT (a $ q u)
     where q :: (m (a, w) -> m (a, w)) -> LazyW.WriterT w m a -> LazyW.WriterT w m a
           q u b = LazyW.WriterT $ u (LazyW.runWriterT b)
@@ -531,11 +602,23 @@ instance (MonadMask m, Monoid w) => MonadMask (LazyW.WriterT w m) where
         return (a, mappend w1 w2))
     return ((b, c), w123)
 
-instance (MonadThrow m, Monoid w) => MonadThrow (LazyRWS.RWST r w s m) where
+instance (MonadThrow m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (LazyRWS.RWST r w s m) where
   throwM e = lift $ throwM e
-instance (MonadCatch m, Monoid w) => MonadCatch (LazyRWS.RWST r w s m) where
+instance (MonadCatch m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (LazyRWS.RWST r w s m) where
   catch (LazyRWS.RWST m) h = LazyRWS.RWST $ \r s -> m r s `catch` \e -> LazyRWS.runRWST (h e) r s
-instance (MonadMask m, Monoid w) => MonadMask (LazyRWS.RWST r w s m) where
+instance (MonadMask m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (LazyRWS.RWST r w s m) where
   mask a = LazyRWS.RWST $ \r s -> mask $ \u -> LazyRWS.runRWST (a $ q u) r s
     where q :: (m (a, s, w) -> m (a, s, w)) -> LazyRWS.RWST r w s m a -> LazyRWS.RWST r w s m a
           q u (LazyRWS.RWST b) = LazyRWS.RWST $ \ r s -> u (b r s)
@@ -564,11 +647,23 @@ instance (MonadMask m, Monoid w) => MonadMask (LazyRWS.RWST r w s m) where
         return (a, s2, mappend w1 w2))
     return ((b, c), s3, w123)
 
-instance (MonadThrow m, Monoid w) => MonadThrow (StrictRWS.RWST r w s m) where
+instance (MonadThrow m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (StrictRWS.RWST r w s m) where
   throwM e = lift $ throwM e
-instance (MonadCatch m, Monoid w) => MonadCatch (StrictRWS.RWST r w s m) where
+instance (MonadCatch m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (StrictRWS.RWST r w s m) where
   catch (StrictRWS.RWST m) h = StrictRWS.RWST $ \r s -> m r s `catch` \e -> StrictRWS.runRWST (h e) r s
-instance (MonadMask m, Monoid w) => MonadMask (StrictRWS.RWST r w s m) where
+instance (MonadMask m, Monoid w
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (StrictRWS.RWST r w s m) where
   mask a = StrictRWS.RWST $ \r s -> mask $ \u -> StrictRWS.runRWST (a $ q u) r s
     where q :: (m (a, s, w) -> m (a, s, w)) -> StrictRWS.RWST r w s m a -> StrictRWS.RWST r w s m a
           q u (StrictRWS.RWST b) = StrictRWS.RWST $ \ r s -> u (b r s)
@@ -598,19 +693,39 @@ instance (MonadMask m, Monoid w) => MonadMask (StrictRWS.RWST r w s m) where
     return ((b, c), s3, w123)
 
 -- Transformers which are only instances of MonadThrow and MonadCatch, not MonadMask
-instance MonadThrow m => MonadThrow (ListT m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (ListT m) where
   throwM = lift . throwM
-instance MonadCatch m => MonadCatch (ListT m) where
+instance (MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (ListT m) where
   catch (ListT m) f = ListT $ catch m (runListT . f)
 
 -- | Throws exceptions into the base monad.
-instance MonadThrow m => MonadThrow (MaybeT m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (MaybeT m) where
   throwM = lift . throwM
 -- | Catches exceptions from the base monad.
-instance MonadCatch m => MonadCatch (MaybeT m) where
+instance (MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (MaybeT m) where
   catch (MaybeT m) f = MaybeT $ catch m (runMaybeT . f)
 -- | @since 0.10.0
-instance MonadMask m => MonadMask (MaybeT m) where
+instance (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (MaybeT m) where
   mask f = MaybeT $ mask $ \u -> runMaybeT $ f (q u)
     where
       q :: (m (Maybe a) -> m (Maybe a))
@@ -639,12 +754,24 @@ instance MonadMask m => MonadMask (MaybeT m) where
     return ((,) <$> eb <*> ec)
 
 -- | Throws exceptions into the base monad.
-instance (Error e, MonadThrow m) => MonadThrow (ErrorT e m) where
+instance (Error e, MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (ErrorT e m) where
   throwM = lift . throwM
 -- | Catches exceptions from the base monad.
-instance (Error e, MonadCatch m) => MonadCatch (ErrorT e m) where
+instance (Error e, MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (ErrorT e m) where
   catch (ErrorT m) f = ErrorT $ catch m (runErrorT . f)
-instance (Error e, MonadMask m) => MonadMask (ErrorT e m) where
+instance (Error e, MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (ErrorT e m) where
   mask f = ErrorT $ mask $ \u -> runErrorT $ f (q u)
     where
       q :: (m (Either e a) -> m (Either e a))
@@ -675,13 +802,25 @@ instance (Error e, MonadMask m) => MonadMask (ErrorT e m) where
       return (b, c)
 
 -- | Throws exceptions into the base monad.
-instance MonadThrow m => MonadThrow (ExceptT e m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (ExceptT e m) where
   throwM = lift . throwM
 -- | Catches exceptions from the base monad.
-instance MonadCatch m => MonadCatch (ExceptT e m) where
+instance (MonadCatch m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadCatch (ExceptT e m) where
   catch (ExceptT m) f = ExceptT $ catch m (runExceptT . f)
 -- | @since 0.9.0
-instance MonadMask m => MonadMask (ExceptT e m) where
+instance (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadMask (ExceptT e m) where
   mask f = ExceptT $ mask $ \u -> runExceptT $ f (q u)
     where
       q :: (m (Either e a) -> m (Either e a))
@@ -714,7 +853,11 @@ instance MonadMask m => MonadMask (ExceptT e m) where
       b <- eb
       return (b, c)
 
-instance MonadThrow m => MonadThrow (ContT r m) where
+instance (MonadThrow m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => MonadThrow (ContT r m) where
   throwM = lift . throwM
 -- I don't believe any valid of MonadCatch exists for ContT.
 -- instance MonadCatch m => MonadCatch (ContT r m) where
@@ -828,7 +971,11 @@ onException action handler = action `catchAll` \e -> handler >> throwM e
 -- except that 'onError' has a more constrained type.
 --
 -- @since 0.10.0
-onError :: MonadMask m => m a -> m b -> m a
+onError :: (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , m @@ (), m @@ (a, ())
+#endif
+           ) => m a -> m b -> m a
 onError action handler = bracketOnError (return ()) (const handler) (const action)
 
 -- | Generalized abstracted pattern of safe resource acquisition and release
@@ -844,24 +991,40 @@ onError action handler = bracketOnError (return ()) (const handler) (const actio
 -- signature from "Control.Exception"), and is often more convenient to use. By
 -- contrast, 'generalBracket' is more expressive, allowing us to implement
 -- other functions like 'bracketOnError'.
-bracket :: MonadMask m => m a -> (a -> m c) -> (a -> m b) -> m b
+bracket :: (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , m @@ (b, c)
+#endif
+           ) => m a -> (a -> m c) -> (a -> m b) -> m b
 bracket acquire release = liftM fst . generalBracket
   acquire
   (\a _exitCase -> release a)
 
 -- | Version of 'bracket' without any value being passed to the second and
 -- third actions.
-bracket_ :: MonadMask m => m a -> m c -> m b -> m b
+bracket_ :: (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , m @@ (), m @@ (b, c)
+#endif
+            ) => m a -> m c -> m b -> m b
 bracket_ before after action = bracket before (const after) (const action)
 
 -- | Perform an action with a finalizer action that is run, even if an
 -- error occurs.
-finally :: MonadMask m => m a -> m b -> m a
+finally :: (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+         , m @@ (), m @@ (a, b)
+#endif
+           ) => m a -> m b -> m a
 finally action finalizer = bracket_ (return ()) finalizer action
 
 -- | Like 'bracket', but only performs the final action if an error is
 -- thrown by the in-between computation.
-bracketOnError :: MonadMask m => m a -> (a -> m c) -> (a -> m b) -> m b
+bracketOnError :: (MonadMask m
+#if MIN_VERSION_base(4,14,0)
+                  , m @@ (), m @@ (b, ())
+#endif
+                  ) => m a -> (a -> m c) -> (a -> m b) -> m b
 bracketOnError acquire release = liftM fst . generalBracket
   acquire
   (\a exitCase -> case exitCase of
