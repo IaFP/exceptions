@@ -7,7 +7,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 #if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, UndecidableSuperClasses #-}
 #endif
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 702

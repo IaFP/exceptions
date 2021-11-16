@@ -99,6 +99,9 @@ import GHC.Types (Total)
 -- Hello!
 
 newtype CatchT m a = CatchT { runCatchT :: m (Either SomeException a) }
+#if MIN_VERSION_base(4,14,0)
+instance Total (CatchT m)
+#endif
 
 type Catch = CatchT Identity
 
