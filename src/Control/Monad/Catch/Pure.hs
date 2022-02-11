@@ -9,6 +9,9 @@
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces #-}
+#endif
 
 #ifndef MIN_VERSION_transformers
 #define MIN_VERSION_transformers(x,y,z) 1
@@ -62,6 +65,9 @@ import Data.Foldable
 #endif
 import Data.Functor.Identity
 import Data.Traversable as Traversable
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, type(@))
+#endif
 
 ------------------------------------------------------------------------------
 -- $mtl
@@ -91,7 +97,11 @@ import Data.Traversable as Traversable
 -- >>> runCatchT $ (throwM (ErrorCall "Hello!") :: CatchT IO ()) `catch` (\(e :: ErrorCall) -> liftIO $ print e)
 -- Hello!
 
-newtype CatchT m a = CatchT { runCatchT :: m (Either SomeException a) }
+newtype
+#if MIN_VERSION_base(4,16,0)
+  m @ (Either SomeException a) =>
+#endif
+  CatchT m a = CatchT { runCatchT :: m (Either SomeException a) }
 
 type Catch = CatchT Identity
 
@@ -101,11 +111,19 @@ runCatch = runIdentity . runCatchT
 instance Monad m => Functor (CatchT m) where
   fmap f (CatchT m) = CatchT (liftM (fmap f) m)
 
-instance Monad m => Applicative (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => Applicative (CatchT m) where
   pure a = CatchT (return (Right a))
   (<*>) = ap
 
-instance Monad m => Monad (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => Monad (CatchT m) where
   return = pure
   CatchT m >>= k = CatchT $ m >>= \ea -> case ea of
     Left e -> return (Left e)
@@ -114,10 +132,18 @@ instance Monad m => Monad (CatchT m) where
   fail = Fail.fail
 #endif
 
-instance Monad m => Fail.MonadFail (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => Fail.MonadFail (CatchT m) where
   fail = CatchT . return . Left . toException . userError
 
-instance MonadFix m => MonadFix (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadFix m) => MonadFix (CatchT m) where
   mfix f = CatchT $ mfix $ \a -> runCatchT $ f $ case a of
     Right r -> r
     _       -> error "empty mfix argument"
@@ -127,16 +153,28 @@ instance Foldable m => Foldable (CatchT m) where
     foldMapEither g (Right a) = g a
     foldMapEither _ (Left _) = mempty
 
-instance (Monad m, Traversable m) => Traversable (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Traversable m) => Traversable (CatchT m) where
   traverse f (CatchT m) = CatchT <$> Traversable.traverse (traverseEither f) m where
     traverseEither g (Right a) = Right <$> g a
     traverseEither _ (Left e) = pure (Left e)
 
-instance Monad m => Alternative (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => Alternative (CatchT m) where
   empty = mzero
   (<|>) = mplus
 
-instance Monad m => MonadPlus (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => MonadPlus (CatchT m) where
   mzero = CatchT $ return $ Left $ toException $ userError ""
   mplus (CatchT m) (CatchT n) = CatchT $ m >>= \ea -> case ea of
     Left _ -> n
@@ -147,14 +185,26 @@ instance MonadTrans CatchT where
     a <- m
     return $ Right a
 
-instance MonadIO m => MonadIO (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadIO m) => MonadIO (CatchT m) where
   liftIO m = CatchT $ do
     a <- liftIO m
     return $ Right a
 
-instance Monad m => MonadThrow (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => MonadThrow (CatchT m) where
   throwM = CatchT . return . Left . toException
-instance Monad m => MonadCatch (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => MonadCatch (CatchT m) where
   catch (CatchT m) c = CatchT $ m >>= \ea -> case ea of
     Left e -> case fromException e of
       Just e' -> runCatchT (c e')
@@ -165,7 +215,11 @@ instance Monad m => MonadCatch (CatchT m) where
 --
 -- For example, @IO@ or @Either@ would be invalid base monads, but
 -- @Reader@ or @State@ would be acceptable.
-instance Monad m => MonadMask (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => MonadMask (CatchT m) where
   mask a = a id
   uninterruptibleMask a = a id
   generalBracket acquire release use = CatchT $ do
@@ -182,18 +236,30 @@ instance Monad m => MonadMask (CatchT m) where
             c <- release resource (ExitCaseSuccess b)
             return (b, c)
 
-instance MonadState s m => MonadState s (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadState s m) => MonadState s (CatchT m) where
   get = lift get
   put = lift . put
 #if MIN_VERSION_mtl(2,1,0)
   state = lift . state
 #endif
 
-instance MonadReader e m => MonadReader e (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadReader e m) => MonadReader e (CatchT m) where
   ask = lift ask
   local f (CatchT m) = CatchT (local f m)
 
-instance MonadWriter w m => MonadWriter w (CatchT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadWriter w m) => MonadWriter w (CatchT m) where
   tell = lift . tell
   listen = mapCatchT $ \ m -> do
     (a, w) <- listen m
@@ -207,7 +273,11 @@ instance MonadWriter w m => MonadWriter w (CatchT m) where
   writer aw = CatchT (Right `liftM` writer aw)
 #endif
 
-instance MonadRWS r w s m => MonadRWS r w s (CatchT m)
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadRWS r w s m) => MonadRWS r w s (CatchT m)
 
 -- | Map the unwrapped computation using the given function.
 --
