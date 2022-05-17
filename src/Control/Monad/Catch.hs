@@ -383,19 +383,19 @@ instance e ~ SomeException => MonadMask (Either e) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+  Total m,
 #endif
   MonadThrow m) => MonadThrow (IdentityT m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+  Total m,
 #endif
   MonadCatch m) => MonadCatch (IdentityT m) where
   catch (IdentityT m) f = IdentityT (catch m (runIdentityT . f))
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+  Total m,
 #endif
   MonadMask m) => MonadMask (IdentityT m) where
   mask a = IdentityT $ mask $ \u -> runIdentityT (a $ q u)
@@ -414,19 +414,19 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m) => MonadThrow (LazyS.StateT s m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m) => MonadCatch (LazyS.StateT s m) where
   catch = LazyS.liftCatch catch
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m) => MonadMask (LazyS.StateT s m) where
   mask a = LazyS.StateT $ \s -> mask $ \u -> LazyS.runStateT (a $ q u) s
@@ -454,19 +454,19 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m) => MonadThrow (StrictS.StateT s m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m) => MonadCatch (StrictS.StateT s m) where
   catch = StrictS.liftCatch catch
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m) => MonadMask (StrictS.StateT s m) where
   mask a = StrictS.StateT $ \s -> mask $ \u -> StrictS.runStateT (a $ q u) s
@@ -491,19 +491,19 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m) => MonadThrow (ReaderT r m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m) => MonadCatch (ReaderT r m) where
   catch (ReaderT m) c = ReaderT $ \r -> m r `catch` \e -> runReaderT (c e) r
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m) => MonadMask (ReaderT r m) where
   mask a = ReaderT $ \e -> mask $ \u -> runReaderT (a $ q u) e
@@ -522,19 +522,19 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m, Monoid w) => MonadThrow (StrictW.WriterT w m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m, Monoid w) => MonadCatch (StrictW.WriterT w m) where
   catch (StrictW.WriterT m) h = StrictW.WriterT $ m `catch ` \e -> StrictW.runWriterT (h e)
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m, Monoid w) => MonadMask (StrictW.WriterT w m) where
   mask a = StrictW.WriterT $ mask $ \u -> StrictW.runWriterT (a $ q u)
@@ -567,21 +567,21 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m, Monoid w) => MonadThrow (LazyW.WriterT w m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m, Monoid w) => MonadCatch (LazyW.WriterT w m) where
   catch (LazyW.WriterT m) h = LazyW.WriterT $ m `catch ` \e -> LazyW.runWriterT (h e)
 instance (
 #if MIN_VERSION_base(4,16,0)
-   Total m,
+    Total m,
 #endif
-   MonadMask m, Monoid w) => MonadMask (LazyW.WriterT w m) where
+  MonadMask m, Monoid w) => MonadMask (LazyW.WriterT w m) where
   mask a = LazyW.WriterT $ mask $ \u -> LazyW.runWriterT (a $ q u)
     where q :: (m (a, w) -> m (a, w)) -> LazyW.WriterT w m a -> LazyW.WriterT w m a
           q u b = LazyW.WriterT $ u (LazyW.runWriterT b)
@@ -612,19 +612,19 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m, Monoid w) => MonadThrow (LazyRWS.RWST r w s m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m, Monoid w) => MonadCatch (LazyRWS.RWST r w s m) where
   catch (LazyRWS.RWST m) h = LazyRWS.RWST $ \r s -> m r s `catch` \e -> LazyRWS.runRWST (h e) r s
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m, Monoid w) => MonadMask (LazyRWS.RWST r w s m) where
   mask a = LazyRWS.RWST $ \r s -> mask $ \u -> LazyRWS.runRWST (a $ q u) r s
@@ -657,19 +657,19 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m, Monoid w) => MonadThrow (StrictRWS.RWST r w s m) where
   throwM e = lift $ throwM e
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m, Monoid w) => MonadCatch (StrictRWS.RWST r w s m) where
   catch (StrictRWS.RWST m) h = StrictRWS.RWST $ \r s -> m r s `catch` \e -> StrictRWS.runRWST (h e) r s
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m, Monoid w) => MonadMask (StrictRWS.RWST r w s m) where
   mask a = StrictRWS.RWST $ \r s -> mask $ \u -> StrictRWS.runRWST (a $ q u) r s
@@ -703,13 +703,13 @@ instance (
 -- Transformers which are only instances of MonadThrow and MonadCatch, not MonadMask
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Applicative m,
 #endif
   MonadThrow m) => MonadThrow (ListT m) where
   throwM = lift . throwM
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Applicative m,
 #endif
   MonadCatch m) => MonadCatch (ListT m) where
   catch (ListT m) f = ListT $ catch m (runListT . f)
@@ -717,21 +717,21 @@ instance (
 -- | Throws exceptions into the base monad.
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m) => MonadThrow (MaybeT m) where
   throwM = lift . throwM
 -- | Catches exceptions from the base monad.
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m) => MonadCatch (MaybeT m) where
   catch (MaybeT m) f = MaybeT $ catch m (runMaybeT . f)
 -- | @since 0.10.0
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m) => MonadMask (MaybeT m) where
   mask f = MaybeT $ mask $ \u -> runMaybeT $ f (q u)
@@ -764,20 +764,20 @@ instance (
 -- | Throws exceptions into the base monad.
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   Error e, MonadThrow m) => MonadThrow (ErrorT e m) where
   throwM = lift . throwM
 -- | Catches exceptions from the base monad.
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   Error e, MonadCatch m) => MonadCatch (ErrorT e m) where
   catch (ErrorT m) f = ErrorT $ catch m (runErrorT . f)
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   Error e, MonadMask m) => MonadMask (ErrorT e m) where
   mask f = ErrorT $ mask $ \u -> runErrorT $ f (q u)
@@ -812,21 +812,21 @@ instance (
 -- | Throws exceptions into the base monad.
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m) => MonadThrow (ExceptT e m) where
   throwM = lift . throwM
 -- | Catches exceptions from the base monad.
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadCatch m) => MonadCatch (ExceptT e m) where
   catch (ExceptT m) f = ExceptT $ catch m (runExceptT . f)
 -- | @since 0.9.0
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadMask m) => MonadMask (ExceptT e m) where
   mask f = ExceptT $ mask $ \u -> runExceptT $ f (q u)
@@ -863,7 +863,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-        Total m,
+    Total m,
 #endif
   MonadThrow m) => MonadThrow (ContT r m) where
   throwM = lift . throwM
